@@ -267,10 +267,10 @@ class MF3D(object):
 			if not os.path.isdir(self.working_directory + 'MF_'+str(spat_fwh)+'pix'):
 				os.mkdir(self.working_directory + 'MF_'+str(spat_fwh)+'pix')
 			self.run_frequencies_parallel(spat_fwh)
-	def make_combined_negatives(self):
+	def make_combined_negatives(self, SNR_thresh):
 		"""
 
-		This function finds the peaks within each Matched Filtered data cube (i.e., for each template) above SNR threshold=4. Searches for negative lines.
+		This function finds the peaks within each Matched Filtered data cube (i.e., for each template) above SNR threshold SNR_thresh. Searches for negative lines.
 
 		Parameters
 		----------
@@ -300,7 +300,7 @@ class MF3D(object):
 			peaks=peak.astype('float64')
 			del peak
 			conv_factor=np.std(peaks[SNR!=0])
-			find_tops_and_clump(peaks,combined,-4,(spat_width,freq_width),conv_factor)
+			find_tops_and_clump(peaks,combined,-SNR_thresh,(spat_width,freq_width),conv_factor)
 			del peaks
 			return conv_factor		
 		combined=dict()
@@ -316,10 +316,10 @@ class MF3D(object):
 		with open(self.working_directory + 'combined_dict_pickled_negative','wb') as outpfil:
 			pickle.dump(combined,outpfil,protocol=-1)
 		return conv_factors
-	def make_combined_positives(self,conv_factors):
+	def make_combined_positives(self, conv_factors, SNR_thresh):
 		"""
 
-		This function finds the peaks within each Matched Filtered data cube (i.e., for each template) above SNR threshold=4. Searches for positive lines.
+		This function finds the peaks within each Matched Filtered data cube (i.e., for each template) above SNR threshold SNR_thresh. Searches for positive lines.
 		The difference to the negatives is that there is no need to measure the Standard deviation of the Matched Filtered cubes anymore, so those values are re-utilized.
 
 		Parameters
@@ -352,7 +352,7 @@ class MF3D(object):
 			peak=np.load(self.working_directory + 'MF_'+str(spat_width)+'pix/peaks'+str(freq_width)+'_full3d.npy')
 			peaks=peak.astype('float64')
 			del peak
-			find_tops_and_clump(peaks,combined,4,(spat_width,freq_width),conv_factor)
+			find_tops_and_clump(peaks,combined,SNR_thresh,(spat_width,freq_width),conv_factor)
 			del peaks
 		combined=dict()
 		SNR=self.SNR
@@ -476,7 +476,7 @@ class MF3D(object):
 			if not cont:
 				reduint_no_cont.append(obj)
 		return reduint_no_cont
-	def run(self):
+	def run(self, SNR_thresh=4):
 		"""
 
 		This function runs a typical Matched Filtering routine from start to end.
@@ -489,8 +489,8 @@ class MF3D(object):
 		"""
 		self.make_FTSNR()
 		self.run_allspat()
-		conv_factors=self.make_combined_negatives()
-		self.make_combined_positives(conv_factors)
+		conv_factors=self.make_combined_negatives(SNR_thresh=SNR_thresh)
+		self.make_combined_positives(conv_factors, SNR_thresh=SNR_thresh)
 		self.reduint_pos=self.make_reduint_positive()
 		self.reduint_neg=self.make_reduint_negative()
 
